@@ -1,0 +1,167 @@
+// File: /order-ui/pages/Dashboard.jsx
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+
+export default function Dashboard() {
+  const [orders, setOrders] = useState([]);
+
+  useEffect(() => {
+    axios.get('/orders').then(res => setOrders(res.data));
+  }, []);
+
+  return (
+    <div className="p-6">
+      <h2 className="text-2xl font-semibold mb-4">All Orders</h2>
+      <table className="w-full table-auto border">
+        <thead className="bg-gray-100">
+          <tr>
+            <th className="p-2 border">Order ID</th>
+            <th className="p-2 border">Customer</th>
+            <th className="p-2 border">Amount</th>
+            <th className="p-2 border">Date</th>
+            <th className="p-2 border">Invoice</th>
+          </tr>
+        </thead>
+        <tbody>
+          {orders.map(order => (
+            <tr key={order.orderId} className="text-center">
+              <td className="border p-2">{order.orderId}</td>
+              <td className="border p-2">{order.customerName}</td>
+              <td className="border p-2">₹{order.orderAmount}</td>
+              <td className="border p-2">{new Date(order.orderDate).toLocaleString()}</td>
+              <td className="border p-2">
+                <a href={order.invoiceFileUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">Download</a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// File: /order-ui/pages/CreateOrder.jsx
+import React, { useState } from 'react';
+import axios from 'axios';
+
+export default function CreateOrder() {
+  const [formData, setFormData] = useState({ customerName: '', orderAmount: '', file: null });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const data = new FormData();
+    data.append('customerName', formData.customerName);
+    data.append('orderAmount', formData.orderAmount);
+    data.append('file', formData.file);
+    await axios.post('/orders', data);
+    alert("Order created!");
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="p-6 max-w-lg mx-auto">
+      <h2 className="text-2xl font-semibold mb-4">Create Order</h2>
+      <input type="text" placeholder="Customer Name" className="input" value={formData.customerName} onChange={e => setFormData({ ...formData, customerName: e.target.value })} required />
+      <input type="number" placeholder="Order Amount" className="input" value={formData.orderAmount} onChange={e => setFormData({ ...formData, orderAmount: e.target.value })} required />
+      <input type="file" accept="application/pdf" onChange={e => setFormData({ ...formData, file: e.target.files[0] })} required />
+      <button type="submit" className="btn mt-4">Submit</button>
+    </form>
+  );
+}
+
+// File: /order-ui/pages/OrderDetail.jsx
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import axios from 'axios';
+
+export default function OrderDetail() {
+  const { id } = useParams();
+  const [order, setOrder] = useState(null);
+
+  useEffect(() => {
+    axios.get(`/orders/${id}`).then(res => setOrder(res.data));
+  }, [id]);
+
+  if (!order) return <p className="p-4">Loading...</p>;
+
+  return (
+    <div className="p-6">
+      <h2 className="text-xl font-bold mb-4">Order Details</h2>
+      <p><strong>Customer:</strong> {order.customerName}</p>
+      <p><strong>Amount:</strong> ₹{order.orderAmount}</p>
+      <p><strong>Date:</strong> {new Date(order.orderDate).toLocaleString()}</p>
+      <a href={order.invoiceFileUrl} className="text-blue-500 underline" target="_blank">Download Invoice</a>
+    </div>
+  );
+}
+
+// File: /order-ui/components/Navbar.jsx
+import React from 'react';
+import { Link } from 'react-router-dom';
+
+export default function Navbar() {
+  return (
+    <nav className="bg-blue-600 text-white p-4 shadow-md flex justify-between">
+      <h1 className="text-xl font-bold">Order Management</h1>
+      <div className="space-x-4">
+        <Link to="/">Dashboard</Link>
+        <Link to="/create">Create Order</Link>
+      </div>
+    </nav>
+  );
+}
+
+// File: /order-ui/components/Toast.jsx
+import React from 'react';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+export default function Toast() {
+  return <ToastContainer />;
+}
+
+// File: /order-ui/App.js
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import Dashboard from './pages/Dashboard';
+import CreateOrder from './pages/CreateOrder';
+import OrderDetail from './pages/OrderDetail';
+import Toast from './components/Toast';
+
+function App() {
+  return (
+    <Router>
+      <Navbar />
+      <Toast />
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/create" element={<CreateOrder />} />
+        <Route path="/orders/:id" element={<OrderDetail />} />
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;
+
+// File: /order-ui/index.js
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+// File: /order-ui/tailwind.config.js
+module.exports = {
+  content: ['./src/**/*.{js,jsx,ts,tsx}'],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+};
